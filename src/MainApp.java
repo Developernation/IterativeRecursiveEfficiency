@@ -4,6 +4,10 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.ArrayList;
 
 /**
  * Created by Thomas Hodges on 9/23/2015.
@@ -18,6 +22,7 @@ import java.awt.event.WindowEvent;
  * Compiler: jdk1.8.0_45
  */
 public class MainApp extends JFrame {
+
 
     // Data fields that are for the look of the program
     static final int WINDOWWIDTH = 350, WINDOWHEIGHT = 200;
@@ -35,6 +40,21 @@ public class MainApp extends JFrame {
     private ButtonGroup radios = new ButtonGroup();
     private JOptionPane frame = new JOptionPane();
     private JLabel blankLabel = new JLabel("");
+
+    // File-specific variables, fileWriter writes to log
+    private static FileWriter fileWriter;
+    private File log = new File("log.csv");
+    private File outIter = new File("outIter.txt");
+    private File outRec = new File("outRec.txt");
+
+    // Entry and efficiency values are stored as a string in this list
+    // before being written to the log.csv file
+    private ArrayList<String> logList = new ArrayList<>();
+    private ArrayList<String> listIter = new ArrayList<>();
+    private ArrayList<String> listRec = new ArrayList<>();
+
+    // Variable to hold the user's input value
+    private int entryValue;
 
     private void setFrame(int width, int height) {
         setSize(width, height);
@@ -67,32 +87,116 @@ public class MainApp extends JFrame {
         mainPanel.add(efficiencyOutput);
 
         computeButton.addActionListener(new ComputeButtonListener());
-        CloseApplicationWriteFileListener close = new CloseApplicationWriteFileListener();
+        CloseApplicationWriteFileAdapter close = new CloseApplicationWriteFileAdapter();
         addWindowListener(close);
     }
 
+    /**
+     * ComputeButtonListener performs its action when the Compute button is pressed.
+     * It determines that valid entry was entered first, then the radio selection to
+     * set the output fields' values and run methods that add those values to each
+     * list as defined at the beginning of the MainApp class.
+     */
     class ComputeButtonListener implements ActionListener {
 
         @Override
         public void actionPerformed(ActionEvent e) {
-            if (iterativeRadio.isSelected()) {
-                resultOutput.setText(String.valueOf(Sequence.computeIterative(getEntryValue())));
+            setEntryValue();
+            if (entryValue > 10 || entryValue < 0) {
+                errorPopUp();
+            } else if (iterativeRadio.isSelected()) {
+                resultOutput.setText(String.valueOf(Sequence.computeIterative(entryValue)));
                 efficiencyOutput.setText(String.valueOf(Sequence.getEfficiency()));
+                addToCSV("Iterative");
+                addToListIter();
             } else if (recursiveRadio.isSelected()) {
-                resultOutput.setText(String.valueOf(Sequence.computeRecursive(getEntryValue())));
+                resultOutput.setText(String.valueOf(Sequence.computeRecursive(entryValue)));
                 efficiencyOutput.setText(String.valueOf(Sequence.getEfficiency()));
+                addToCSV("Recursive");
+                addToListRec();
             }
+            clearEntryValue();
         }
-
     }
 
-    class CloseApplicationWriteFileListener extends WindowAdapter {
+    /**
+     * CloseApplicationWriteFileAdapter replaces the normal EXIT_ON_CLOSE method
+     * that would usually be used as a default close operation. This is because
+     * the files defined at the beginning of the MainApp class need to be written
+     * to the computer before the program exits. This class will attempt the
+     * writeFiles method before stopping the program.
+     */
+    class CloseApplicationWriteFileAdapter extends WindowAdapter {
 
         @Override
         public void windowClosing(WindowEvent e) {
-            // TODO - complete file writer
-            System.out.println("Closing window.");
+            try {
+                if (!logList.isEmpty()) {
+                    writeFiles();
+                    fileWriter.close();
+                }
+                System.out.println("Try statement close");
+            } catch (IOException ex) {
+                ex.printStackTrace();
+                System.out.println("Caught IOException");
+                System.exit(0);
+            } catch (NullPointerException e1) {
+                e1.printStackTrace();
+                System.out.println("Caught null pointer");
+                System.exit(0);
+            }
             System.exit(0);
+        }
+    }
+
+    // Adds a label for the radio selection, efficiency, and entry to the logList array.
+    public void addToCSV(String choice) {
+        logList.add(choice + ", " + Sequence.getEfficiency() + ", " + entryValue);
+    }
+
+    // Adds the efficiency and entry value to the listIter array.
+    public void addToListIter() {
+        listIter.add(Sequence.getEfficiency() + ", " + entryValue);
+    }
+
+    // Adds the efficiency and entry value to the listRec array.
+    public void addToListRec() {
+        listRec.add(Sequence.getEfficiency() + ", " + entryValue);
+    }
+
+    // This method writes 3 files to the hard drive for a CSV and txt for each array
+    public void writeFiles() {
+
+        try {
+
+            // First writes the CSV file
+            fileWriter = new FileWriter(log);
+            for (String l : logList) {
+                fileWriter.write(l + System.getProperty("line.separator"));
+            }
+
+            fileWriter.close();
+
+            // Then writes the outIter.txt file
+            fileWriter = new FileWriter(outIter);
+
+            for (String l : listIter) {
+                fileWriter.write(l + System.getProperty("line.separator"));
+            }
+
+            fileWriter.close();
+
+            // Last writes the outRec.txt file
+            fileWriter = new FileWriter(outRec);
+
+            for (String l : listRec) {
+                fileWriter.write(l + System.getProperty("line.separator"));
+            }
+
+            fileWriter.close();
+
+        } catch (IOException e) {
+            e.getMessage();
         }
     }
 
@@ -101,11 +205,13 @@ public class MainApp extends JFrame {
         try {
             return Integer.parseInt(entry.getText());
         } catch (NumberFormatException e) {
-            System.out.println("Caught in getEntryValue\n");
-            errorPopUp();
             clearEntryValue();
-            return 0;
+            return 11; // Return 11 to prevent log file write
         }
+    }
+
+    public void setEntryValue() {
+        this.entryValue = getEntryValue();
     }
 
     // Clears the text entry field

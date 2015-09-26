@@ -16,6 +16,13 @@ public final class Sequence {
 
     private static int efficiency = 0;
 
+    /**
+     * computIterative receives the user input as "n" and
+     * checks for two base cases before iterating. Each
+     * base case must add to efficiency in order for the
+     * counter to be accurate, then the fori loop will begin
+     * with i=2, increasing program efficiency by looping less.
+     */
     public static int computeIterative(int n) {
         efficiency = 0;
         int returnValue = 0;
@@ -38,11 +45,21 @@ public final class Sequence {
         return returnValue;
     }
 
+    /**
+     * computeRecursive receives user input through "n" and sets
+     * the efficiency counter to 0. It then calls the helper method
+     * to perform the recursion.
+     */
     public static int computeRecursive(int n) {
         efficiency = 0;
         return computeRecursiveHelper(n);
     }
 
+    /**
+     * computeRecursiveHelper has two base cases similar to computeIterative,
+     * each increasing the efficiency counter by one. This method must call
+     * itself twice per cycle in order to perform the operation.
+     */
     private static int computeRecursiveHelper(int n) {
         if (n == 0) {
             efficiency++;
